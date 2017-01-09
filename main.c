@@ -5,94 +5,87 @@
 /**
  * Bits de configuration:
  */
-#pragma config FOSC = INTIO67   // Osc. interne, A6 et A7 comme IO.
-#pragma config IESO = OFF       // Pas d'osc. au démarrage.
-#pragma config FCMEN = OFF      // Pas de monitorage de l'oscillateur.
+
+// Oscillateur interne:
+#pragma config OSC = INTIO2     // Internal RC oscillator, port function on RA6 and port function on RA7
+#pragma config IESO = OFF       // Internal External Switchover mode enabled.
+#pragma config FSCM = OFF       // Fail-Safe Clock Monitor disabled
 
 // Nécessaires pour ICSP / ICD:
-#pragma config MCLRE = EXTMCLR  // RE3 est actif comme master reset.
-#pragma config WDTEN = OFF      // Watchdog inactif.
-#pragma config LVP = OFF        // Single Supply Enable bits off.
-
+#pragma config DEBUG = ON       // Background debugger enabled, RB6 and RB7 are dedicated to In-Circuit Debug.
+#pragma config MCLRE = ON       // MCLR pin enabled, RA5 input pin disabled
+#pragma config WDT = OFF        // Watchdog inactif.
+#pragma config LVP = OFF        // Low-Voltage ICSP disabled.
 
 #ifndef TEST
+
+void interrupt low_priority bassePriorite() {
+    if (INTCONbits.T0IF) {
+        INTCONbits.T0IF = 0;
+        TMR0H = 0xFF;
+        TMR0L = 0x37;
+
+        ADCON0bits.GODONE = 1;
+    }
+    
+    if (PIR1bits.ADIF) {
+        PIR1bits.ADIF = 0;
+        if (ADRESH < 158) {
+            PORTAbits.RA0 = 1;
+            TRISBbits.RB3 = 0;
+        }
+        if (ADRESH > 200) {
+            PORTAbits.RA0 = 0;
+            TRISBbits.RB3 = 1;            
+        }
+    }
+}
+
 /**
  * Initialise le hardware.
  */
 static void hardwareInitialise() {
     // Horloge à 8MHz:
-    OSCCONbits.IRCF = 4;    // 6 ==> 8MHz
-    OSCTUNEbits.PLLEN = 0;
-
-    // Prépare Temporisateur 1 pour 50 interruptions / s
-    //            8 * 10^6                           8 * 10^6
-    //  50 = ------------------- ==> T1CKPS * TMR1 = --------- = 40000
-    //        4 * T1CKPS * TMR1                       4 * 50
-    T1CONbits.TMR1CS = 0;       // Source: FOSC / 4
-    T1CONbits.T1CKPS = 0;       // Pas de diviseur de fréquence.
-    T1CONbits.T1RD16 = 1;       // Compteur de 16 bits.
-    T1CONbits.TMR1ON = 1;       // Active le temporisateur.
-    TMR1 = 25535;
-
-    PIE1bits.TMR1IE = 1;        // Active les interruptions ...
-    IPR1bits.TMR1IP = 0;        // ... de basse priorité ...
-    PIR1bits.TMR1IF = 0;        // ... pour le temporisateur 1.
+    OSCCONbits.IRCF = 7;    // 7 ==> 8MHz
     
-    // Prépare Temporisateur 2 pour un PWM de 50KHz:
-    T2CONbits.T2CKPS = 0;       // Pas de diviseur de fréquence
-    T2CONbits.T2OUTPS = 0b1001; // Diviseur de fréquence de sortie à 1:10
-    T2CONbits.TMR2ON = 1;       // Active le temporisateur.
-
-    // Configure PWM 1 pour émettre un signal de 1KHz:
-    ANSELCbits.ANSC2 = 0;
-    TRISCbits.RC2 = 0;
+    // Configuration des ports d'entrée / sortie
+    TRISA = 0b00000000;
+    TRISB = 0b00011011;
     
-    CCP1CONbits.P1M = 0;        // Simple PWM sur la sortie P1A
-    CCP1CONbits.CCP1M = 12;     // Active le CCP1 comme PWM.
-    CCPTMRS0bits.C1TSEL = 0;    // Branche le CCP1 sur le temporisateur 2.
-    PR2 = 80;                  // Largeur de pulsation: 1ms.
-    CCPR1L = 0;                // Cycle de travail fixe.
-
-    // Configure RC0 et RC1 pour gérer la direction du moteur:
-    TRISCbits.RC0 = 0;
-    TRISCbits.RC1 = 0;
+    // PWM à 200kHz
+    CCP1CONbits.CCP1M = 12; // PWM actif, P1A actif haut.
+    CCP1CONbits.P1M = 0;    // Sortie uniquement P1A (RB3) 
+    PR2 = 40;               // Période de 40
+    CCPR1L = 8;             // Cycle de travail de 20%
+    T2CONbits.T2CKPS = 0;
+    T2CONbits.TMR2ON = 1;
     
-    // Active le module de conversion A/D:
-    TRISAbits.RA1 = 1;      // Active RA1 comme entrée.
-    ANSELAbits.ANSA1 = 1;   // Active RA1/AN1 comme entrée analogique.
-    ADCON0bits.ADON = 1;    // Allume le module A/D.
-    ADCON0bits.CHS = 1;     // Branche le convertisseur sur AN1
-    ADCON2bits.ADFM = 0;    // Les 8 bits plus signifiants sur ADRESH.
-    ADCON2bits.ACQT = 3;    // Temps d'acquisition à 6 TAD.
-    ADCON2bits.ADCS = 0;    // À 1MHz, le TAD est à 2us.
-
-    PIE1bits.ADIE = 1;      // Active les interruptions A/D
-    IPR1bits.ADIP = 0;      // Interruptions A/D sont de basse priorité.
-
+    
+    // Active le temporisateur 0 pour surveiller L'accumulateur principal:
+    // Période d'interruption: 100uS
+    T0CONbits.T08BIT = 0;
+    T0CONbits.T0CS = 0;
+    T0CONbits.PSA = 1;
+    T0CONbits.TMR0ON = 1;
+    INTCONbits.TMR0IE = 1;
+    INTCONbits.TMR0IF = 0;
+    INTCON2bits.TMR0IP = 0;
+    
+    // Configure le convertisseur analogique pour un temps de conversion de 24uS
+    ADCON0bits.ADON = 1;
+    ADCON0bits.CHS = 6;
+    ADCON1 = 0b00101111;    // Active AN6 et AN4 comme entrées analogiques.
+    ADCON2bits.ADFM = 0;    // Justification à gauche.
+    ADCON2bits.ADCS = 5;    // Horloge de conversion: Fosc / 8
+    ADCON2bits.ACQT = 5;    // Conversion: 12 TAD.
+    
+    PIE1bits.ADIE = 1;      // Interruptions du module A/D
+    IPR1bits.ADIP = 0;      // Basse priorité.
+    
     // Active les interruptions générales:
     RCONbits.IPEN = 1;
     INTCONbits.GIEH = 1;
     INTCONbits.GIEL = 1;
-}
-
-/**
- * Point d'entrée des interruptions.
- */
-void low_priority interrupt interruptionsBassePriorite() {
-    static PID pid1 = {9, 0, 3, 0, 0, 0, 0};
-    unsigned char pwm;
-
-    if (PIR1bits.TMR1IF) {
-        TMR1 = 60000;
-        ADCON0bits.GO = 1;
-        PIR1bits.TMR1IF = 0;
-    }
-    
-    if (PIR1bits.ADIF) {
-        pwm = calculatePID(&pid1, ADRESH, 153);
-        CCPR1L = 60;
-        PIR1bits.ADIF = 0;
-    }
 }
 
 /**
