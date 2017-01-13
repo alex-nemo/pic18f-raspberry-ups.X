@@ -52,6 +52,13 @@ static void hardwareInitialise() {
     TRISA = 0b00000000;
     TRISB = 0b00011011;
     
+    // Charge l'accumulateur secondaire
+    TRISBbits.RB2 = 0;
+    PORTBbits.RB2 = 1;
+    
+    TRISAbits.RA7 = 1;
+    PORTAbits.RA7 = 1;
+    
     // PWM à 200kHz
     CCP1CONbits.CCP1M = 12; // PWM actif, P1A actif haut.
     CCP1CONbits.P1M = 0;    // Sortie uniquement P1A (RB3) 
