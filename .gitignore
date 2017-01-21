@@ -8,3 +8,4 @@ nbproject/private
 *.pdsbak
 Thumbs.db
 *.ods#
+*.DS_Store

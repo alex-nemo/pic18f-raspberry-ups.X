@@ -53,7 +53,8 @@ static void hardwareInitialise() {
     TRISB = 0b00011011;
     
     // Charge l'accumulateur secondaire
-    TRISBbits.RB2 = 0;
+    // TODO: Ouvrir un des ports pour charger l'accumulateur secondaire.
+    TRISBbits.RB2 = 1;  
     PORTBbits.RB2 = 1;
     
     TRISAbits.RA7 = 1;
@@ -65,7 +66,7 @@ static void hardwareInitialise() {
     PR2 = 40;               // Période de 40
     CCPR1L = 8;             // Cycle de travail de 20%
     T2CONbits.T2CKPS = 0;
-    T2CONbits.TMR2ON = 1;
+    T2CONbits.TMR2ON = 0;   // TODO: Activer le temporisateur pour obtenir le PWM
     
     
     // Active le temporisateur 0 pour surveiller L'accumulateur principal:
