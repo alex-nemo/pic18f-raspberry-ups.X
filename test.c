@@ -22,8 +22,8 @@ void initialiseUART1() {
     SPBRGH = 0;
     // Configure RC6 et RC7 comme entrées digitales, pour que
     // la EUSART puisse en prendre le contrôle:
-    TRISCbits.RC6 = 1;
-    TRISCbits.RC7 = 1;
+    TRISBbits.RB1 = 1;
+    TRISBbits.RB4 = 1;
     
     // Configure la EUSART:
     // (BRGH et BRG16 sont à leur valeurs par défaut)
@@ -42,18 +42,9 @@ void initialiseTests() {
     printf("\r\nLancement des tests...\r\n");
 }
 
-unsigned char testeEgaliteEntiers(const char *testId, int valeurObtenue, int valeurAttendue) {
+unsigned char verifieEgalite(const char *testId, int valeurObtenue, int valeurAttendue) {
     if (valeurObtenue != valeurAttendue) {
         printf("%s: Valeur obtenue %d - Valeur attendue %d\r\n", testId, valeurObtenue, valeurAttendue);
-        testsEnErreur++;
-        return 255;
-    }
-    return 0;
-}
-
-unsigned char testeEgaliteChars(const char *testId, char valeurObtenue, char valeurAttendue) {
-    if (valeurObtenue != valeurAttendue) {
-        printf("%s: Valeur obtenue <%c> - Valeur attendue <%c>\r\n", testId, valeurObtenue, valeurAttendue);
         testsEnErreur++;
         return 255;
     }

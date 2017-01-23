@@ -16,16 +16,7 @@ void initialiseTests();
  * @return 1 si le test échoue, ce qui permet de compter le nombre
  * de tests en erreur.
  */
-int testeEgaliteEntiers(const char *testId, int value, int expectedValue);
-
-/**
- * Vérifie si la valeur obtenue est égale à la valeur attendue.
- * @param testId Identifiant du test.
- * @param valeurObtenue Valeur obtenue.
- * @param valeurAttendue Valeur attendue.
- * @return 255 si le test échoue.
- */
-unsigned char testeEgaliteChars(const char *testId, char valeurObtenue, char valeurAttendue);
+unsigned char verifieEgalite(const char *testId, int value, int expectedValue);
 
 /**
  * Affiche le nombre de tests en échec.

@@ -1,5 +1,5 @@
 #include <xc.h>
-#include "pid.h"
+#include "accumulateur.h"
 #include "test.h"
 
 /**
@@ -19,6 +19,19 @@
 
 #ifndef TEST
 
+void gereAccumulateur(unsigned char vacc) {
+    Accumulateur *accumulateur = machineAccumulateur(vacc);
+
+    // Active la charge de l'accumulateur secondaire:
+    PORTBbits.RB2 = accumulateur->accumulateurEnCharge;
+
+    // Allume le LED jaune:
+    PORTAbits.RA0 = accumulateur->accumulateurEnCharge;
+
+    // Allume le LED vert:
+    PORTAbits.RA1 = accumulateur->accumulateurDisponible;    
+}
+
 void interrupt low_priority bassePriorite() {
     if (INTCONbits.T0IF) {
         INTCONbits.T0IF = 0;
@@ -30,14 +43,7 @@ void interrupt low_priority bassePriorite() {
     
     if (PIR1bits.ADIF) {
         PIR1bits.ADIF = 0;
-        if (ADRESH < 158) {
-            PORTAbits.RA0 = 1;
-            TRISBbits.RB3 = 0;
-        }
-        if (ADRESH > 200) {
-            PORTAbits.RA0 = 0;
-            TRISBbits.RB3 = 1;            
-        }
+        gereAccumulateur(ADRESH);
     }
 }
 
@@ -51,14 +57,13 @@ static void hardwareInitialise() {
     // Configuration des ports d'entrée / sortie
     TRISA = 0b00000000;
     TRISB = 0b00011011;
-    
-    // Charge l'accumulateur secondaire
-    // TODO: Ouvrir un des ports pour charger l'accumulateur secondaire.
-    TRISBbits.RB2 = 1;  
-    PORTBbits.RB2 = 1;
-    
+
+    // Désactive la charge lente de l'accumulateur secondaire:
     TRISAbits.RA7 = 1;
-    PORTAbits.RA7 = 1;
+    PORTAbits.RA7 = 0;
+
+    TRISBbits.RB2 = 0;
+    PORTBbits.RB2 = 0;
     
     // PWM à 200kHz
     CCP1CONbits.CCP1M = 12; // PWM actif, P1A actif haut.
@@ -81,7 +86,7 @@ static void hardwareInitialise() {
     
     // Configure le convertisseur analogique pour un temps de conversion de 24uS
     ADCON0bits.ADON = 1;
-    ADCON0bits.CHS = 6;
+    ADCON0bits.CHS = 4;     // AN4: Tension de sortie de l'accumulateur secondaire.
     ADCON1 = 0b00101111;    // Active AN6 et AN4 comme entrées analogiques.
     ADCON2bits.ADFM = 0;    // Justification à gauche.
     ADCON2bits.ADCS = 5;    // Horloge de conversion: Fosc / 8
@@ -108,7 +113,7 @@ void main(void) {
 #ifdef TEST
 void main(void) {
     initialiseTests();
-    testPid();
+    testeAccumulateur();
     finaliseTests();
     while(1);
 }
