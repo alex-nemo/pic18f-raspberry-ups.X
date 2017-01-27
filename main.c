@@ -20,7 +20,7 @@
 #ifndef TEST
 
 void gereAccumulateur(unsigned char vacc) {
-    Accumulateur *accumulateur = machineAccumulateur(vacc);
+    Accumulateur *accumulateur = mesureAccumulateur(vacc);
 
     // Active la charge de l'accumulateur secondaire:
     PORTBbits.RB2 = accumulateur->accumulateurEnCharge;
