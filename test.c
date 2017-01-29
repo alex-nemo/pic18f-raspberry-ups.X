@@ -36,6 +36,9 @@ void initialiseUART1() {
 /** Nombre de tests en erreur depuis l'initialisation des tests. */
 static int testsEnErreur = 0;
 
+/** Nombre total de tests. */
+static int testsSucces = 0;
+
 void initialiseTests() {
     initialiseUART1();
     testsEnErreur = 0;
@@ -48,11 +51,13 @@ unsigned char verifieEgalite(const char *testId, int valeurObtenue, int valeurAt
         testsEnErreur++;
         return 255;
     }
+    testsSucces++;
     return 0;
 }
 
 void finaliseTests() {
-    printf("%d tests en erreur\r\n", testsEnErreur);    
+    printf("%d tests en succes\r\n", testsSucces);
+    printf("%d tests en erreur\r\n", testsEnErreur);
 }
 
 #endif
