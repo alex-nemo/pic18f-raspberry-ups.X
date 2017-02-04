@@ -14,9 +14,9 @@ void initialiseAccumulateur() {
 }
 
 Accumulateur *mesureAlimentation(unsigned char valim) {
-    // Si l'alimentation tombe en dessous du 6V, on
+    // Si l'alimentation tombe en dessous du 7.05V, on
     // active l'accumulateur secondaire.
-    if (valim < 153) {
+    if (valim < 180) {
         // Mais seulement si l'accumulateur secondaire est présent et disponible.
         if (accumulateur.accumulateurPresent && accumulateur.accumulateurDisponible) {
             accumulateur.accumulateurEnCharge = 0;
@@ -24,9 +24,9 @@ Accumulateur *mesureAlimentation(unsigned char valim) {
         }
     }
     
-    // Si l'alimentation monte au dessus de 7V, on
+    // Si l'alimentation monte au dessus de 7.8V, on
     // arrête de solliciter l'accumulateur secondaire.
-    if (valim > 178) {
+    if (valim > 198) {
         accumulateur.accumulateurSollicite = 0;
     }
     
@@ -115,12 +115,12 @@ static void peut_detecter_que_l_accumulateur_est_disponible() {
 static void sollicite_l_accumulateur_si_l_alimentation_fait_defaut() {
     initialiseAccumulateur();
     mesureAccumulateur(CONVERSION_8BITS(40));
-    verifieEgalite("ACCSOL01", mesureAlimentation(CONVERSION_8BITS(60))->accumulateurSollicite, 0);
-    verifieEgalite("ACCSOL02", mesureAlimentation(CONVERSION_8BITS(59))->accumulateurSollicite, 1);
-    verifieEgalite("ACCSOL03", mesureAlimentation(CONVERSION_8BITS(60))->accumulateurSollicite, 1);
-    verifieEgalite("ACCSOL04", mesureAlimentation(CONVERSION_8BITS(70))->accumulateurSollicite, 1);
-    verifieEgalite("ACCSOL04", mesureAlimentation(CONVERSION_8BITS(71))->accumulateurSollicite, 0);
-    verifieEgalite("ACCSOL05", mesureAlimentation(CONVERSION_8BITS(70))->accumulateurSollicite, 0);
+    verifieEgalite("ACCSOL01", mesureAlimentation(CONVERSION_8BITS(71))->accumulateurSollicite, 0);
+    verifieEgalite("ACCSOL02", mesureAlimentation(CONVERSION_8BITS(70))->accumulateurSollicite, 1);
+    verifieEgalite("ACCSOL03", mesureAlimentation(CONVERSION_8BITS(71))->accumulateurSollicite, 1);
+    verifieEgalite("ACCSOL04", mesureAlimentation(CONVERSION_8BITS(78))->accumulateurSollicite, 1);
+    verifieEgalite("ACCSOL04", mesureAlimentation(CONVERSION_8BITS(79))->accumulateurSollicite, 0);
+    verifieEgalite("ACCSOL05", mesureAlimentation(CONVERSION_8BITS(78))->accumulateurSollicite, 0);
 }
 
 static void ne_solicite_plus_l_accumulateur_si_il_est_pas_disponible() {

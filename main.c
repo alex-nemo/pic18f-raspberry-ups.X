@@ -19,31 +19,68 @@
 
 #ifndef TEST
 
-void gereAccumulateur(unsigned char vacc) {
-    Accumulateur *accumulateur = mesureAccumulateur(vacc);
+/**
+ * Configure le circuit selon l'état de l'accumulateur.
+ * @param accumulateur L'état de l'accumulateur.
+ */
+void configureCircuit(Accumulateur *accumulateur) {
 
-    // Active la charge de l'accumulateur secondaire:
+    // Active la charge de l'accumulateur:
     PORTBbits.RB2 = accumulateur->accumulateurEnCharge;
-
-    // Allume le LED jaune:
+    // Allume le LED jaune si l'accumulateur est en charge:
     PORTAbits.RA0 = accumulateur->accumulateurEnCharge;
 
-    // Allume le LED vert:
+    // Sollicite l'accumulateur:
+    TRISBbits.RB3 = ~accumulateur->accumulateurSollicite;
+
+    // Allume le LED vert si l'accumulateur a suffisament de charge disponible:
     PORTAbits.RA1 = accumulateur->accumulateurDisponible;    
 }
 
+/**
+ * Énumère les sources de conversion Analogique/Digital.
+ * Intègre le numéro de canal (AN1... AN6) dans l'énumération.
+ */
+typedef enum {
+    ACCUMULATEUR = 4,
+    ALIMENTATION = 6
+} SourceAD;
+
+/**
+ * Gère les interruptions de basse priorité.
+ */
 void interrupt low_priority bassePriorite() {
+    static SourceAD sourceAD = ACCUMULATEUR;
+    Accumulateur *accumulateur;
+    unsigned char conversion;
+
+    // Lance une conversion Analogique / Digitale:
     if (INTCONbits.T0IF) {
         INTCONbits.T0IF = 0;
         TMR0H = 0xFF;
         TMR0L = 0x37;
 
+        ADCON0bits.CHS = sourceAD;
         ADCON0bits.GODONE = 1;
     }
     
+    // Reçoit le résultat de la conversion Analogique / Digitale.
     if (PIR1bits.ADIF) {
+        conversion = ADRESH;
         PIR1bits.ADIF = 0;
-        gereAccumulateur(ADRESH);
+        switch (sourceAD) {
+            case ACCUMULATEUR:
+                accumulateur = mesureAccumulateur(conversion);
+                sourceAD = ALIMENTATION;
+                break;
+                
+            case ALIMENTATION:
+            default:
+                accumulateur = mesureAlimentation(conversion);
+                sourceAD = ACCUMULATEUR;
+                break;
+        }
+        configureCircuit(accumulateur);
     }
 }
 
@@ -56,7 +93,7 @@ static void hardwareInitialise() {
     
     // Configuration des ports d'entrée / sortie
     TRISA = 0b00000000;
-    TRISB = 0b00011011;
+    TRISB = 0b00010011;
 
     // Désactive la charge lente de l'accumulateur secondaire:
     TRISAbits.RA7 = 1;
@@ -66,13 +103,13 @@ static void hardwareInitialise() {
     PORTBbits.RB2 = 0;
     
     // PWM à 200kHz
+    TRISBbits.RB3 = 1;      // Bloque la sortie du PWM.
     CCP1CONbits.CCP1M = 12; // PWM actif, P1A actif haut.
     CCP1CONbits.P1M = 0;    // Sortie uniquement P1A (RB3) 
     PR2 = 40;               // Période de 40
     CCPR1L = 8;             // Cycle de travail de 20%
-    T2CONbits.T2CKPS = 0;
-    T2CONbits.TMR2ON = 0;   // TODO: Activer le temporisateur pour obtenir le PWM
-    
+    T2CONbits.T2CKPS = 0;   
+    T2CONbits.TMR2ON = 1;
     
     // Active le temporisateur 0 pour surveiller L'accumulateur principal:
     // Période d'interruption: 100uS
