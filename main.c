@@ -107,7 +107,7 @@ static void hardwareInitialise() {
     CCP1CONbits.CCP1M = 12; // PWM actif, P1A actif haut.
     CCP1CONbits.P1M = 0;    // Sortie uniquement P1A (RB3) 
     PR2 = 40;               // Période de 40
-    CCPR1L = 8;             // Cycle de travail de 20%
+    CCPR1L = 20;            // Cycle de travail de 50%
     T2CONbits.T2CKPS = 0;   
     T2CONbits.TMR2ON = 1;
     
