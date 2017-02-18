@@ -33,6 +33,16 @@ Accumulateur *mesureAlimentation(unsigned char valim) {
     return &accumulateur;
 }
 
+Accumulateur *mesureBoost(unsigned char vboost) {
+    // Si la tension de sortie du convertisseur boost dépasse 9.5V, c'est
+    // parce que le raspberry a cessé de consommer du courant. On peut
+    // donc éteindre le convertisseur. 
+    if (vboost > 241) {
+        accumulateur.accumulateurSollicite = 0;
+    }
+    return &accumulateur;
+}
+
 Accumulateur *mesureAccumulateur(unsigned char vacc) {
     // Si la tension de sortie de l'accumulateur est inférieur à 2V 
     // ou supérieure à 4.5V, alors l'accumulateur n'est pas présent ou
@@ -123,6 +133,15 @@ static void sollicite_l_accumulateur_si_l_alimentation_fait_defaut() {
     verifieEgalite("ACCSOL05", mesureAlimentation(CONVERSION_8BITS(78))->accumulateurSollicite, 0);
 }
 
+static void ne_sollicite_plus_l_accumulateur_si_le_raspberry_s_eteint() {
+    initialiseAccumulateur();
+    mesureAccumulateur(CONVERSION_8BITS(40));
+    mesureAlimentation(CONVERSION_8BITS(60));
+    verifieEgalite("ACCAU01", mesureBoost(CONVERSION_8BITS(85))->accumulateurSollicite, 1);
+    verifieEgalite("ACCAU02", mesureBoost(CONVERSION_8BITS(90))->accumulateurSollicite, 1);
+    verifieEgalite("ACCAU03", mesureBoost(CONVERSION_8BITS(95))->accumulateurSollicite, 0);
+}
+
 static void ne_solicite_plus_l_accumulateur_si_il_est_pas_disponible() {
     initialiseAccumulateur();
     
@@ -143,7 +162,7 @@ static void ne_solicite_pas_l_accumulateur_si_il_est_pas_disponible() {
     initialiseAccumulateur();
 
     mesureAccumulateur(CONVERSION_8BITS(31));
-    verifieEgalite("ACCSP01", mesureAlimentation(CONVERSION_8BITS(59))->accumulateurSollicite, 0);
+    verifieEgalite("ACCSD01", mesureAlimentation(CONVERSION_8BITS(59))->accumulateurSollicite, 0);
     
 }
 
@@ -152,10 +171,6 @@ static void ne_solicite_pas_l_accumulateur_si_il_est_pas_present() {
 
     mesureAccumulateur(CONVERSION_8BITS(19));
     verifieEgalite("ACCSP01", mesureAlimentation(CONVERSION_8BITS(59))->accumulateurSollicite, 0);
-
-    mesureAccumulateur(CONVERSION_8BITS(19));
-    verifieEgalite("ACCSP01", mesureAlimentation(CONVERSION_8BITS(59))->accumulateurSollicite, 0);
-    
 }
 
 void testeAccumulateur() {
@@ -164,6 +179,7 @@ void testeAccumulateur() {
     peut_completer_un_cycle_de_charge();
     
     sollicite_l_accumulateur_si_l_alimentation_fait_defaut();
+    ne_sollicite_plus_l_accumulateur_si_le_raspberry_s_eteint();
  
     ne_solicite_plus_l_accumulateur_si_il_est_pas_disponible();
     ne_solicite_pas_l_accumulateur_si_il_est_pas_disponible();

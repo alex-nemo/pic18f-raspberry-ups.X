@@ -25,16 +25,21 @@
  */
 void configureCircuit(Accumulateur *accumulateur) {
 
-    // Active la charge de l'accumulateur:
-    PORTBbits.RB2 = accumulateur->accumulateurEnCharge;
-    // Allume le LED jaune si l'accumulateur est en charge:
-    PORTAbits.RA0 = accumulateur->accumulateurEnCharge;
+    // JAUNE: Si l'accumulateur n'est pas disponible, ou si il est en charge:
+    if ( (!accumulateur->accumulateurDisponible) || (accumulateur->accumulateurEnCharge)) {
+        PORTAbits.RA0 = 1;
+    } else {
+        PORTAbits.RA0 = 0;        
+    }
 
-    // Sollicite l'accumulateur:
+    // VERT: Si l'accumulateur est disponible:
+    PORTAbits.RA1 = accumulateur->accumulateurDisponible;
+    
+    // ROUGE: Si l'accumulateur est sollicité:
+    PORTAbits.RA2 = accumulateur->accumulateurSollicite;
+    
+    // Convertisseur BOOST: pour solliciter l'accumulateur:
     TRISBbits.RB3 = ~accumulateur->accumulateurSollicite;
-
-    // Allume le LED vert si l'accumulateur a suffisament de charge disponible:
-    PORTAbits.RA1 = accumulateur->accumulateurDisponible;    
 }
 
 /**
@@ -43,7 +48,8 @@ void configureCircuit(Accumulateur *accumulateur) {
  */
 typedef enum {
     ACCUMULATEUR = 4,
-    ALIMENTATION = 6
+    ALIMENTATION = 6,
+    BOOST = 5
 } SourceAD;
 
 /**
@@ -71,9 +77,14 @@ void interrupt low_priority bassePriorite() {
         switch (sourceAD) {
             case ACCUMULATEUR:
                 accumulateur = mesureAccumulateur(conversion);
-                sourceAD = ALIMENTATION;
+                sourceAD = BOOST;
                 break;
                 
+            case BOOST:
+                accumulateur = mesureBoost(conversion);
+                sourceAD = ALIMENTATION;
+                break;
+
             case ALIMENTATION:
             default:
                 accumulateur = mesureAlimentation(conversion);
