@@ -1,86 +1,187 @@
 #include "accumulateur.h"
 #include "test.h"
 
-/**
- * État actuel de l'accumulateur.
+/** 
+ * Énumère les états de l'accumulateur.
  */
-Accumulateur accumulateur = {0, 0, 0};
+typedef enum {
+    /**
+     * L'accumulateur est absent.
+     */
+    ABSENT,
+    /**
+     * L'accumulateur est présent, mais pas utilisable.
+     */
+    PAS_UTILISABLE,
+    /**
+     * L'accumulateur est utilisable, mais son niveau de charge est faible.
+     */
+    UTILISABLE_MAIS_FAIBLE,
+    /**
+     * L'accumulateur est utilisable.
+     */
+    UTILISABLE
+} EtatAccumulateur;
 
+
+/**
+ * Énumère les états de la source d'alimentation.
+ */
+typedef enum {
+    /**
+     * L'alimentation est utilisable.
+     */
+    PRESENTE,
+    /**
+     * L'alimentation n'est pas utilisable.
+     */
+    DEFAILLANTE
+} EtatAlimentation;
+
+
+/**
+ * Énumère les états du raspberry.
+ */
+typedef enum {
+    /**
+     * Le raspberry est probablement allumé, et a besoin de courant.
+     */
+    PROBABLEMENT_ACTIF,
+    /**
+     * Le raspberry ne consomme actuellement pas de courant.
+     */
+    INACTIF
+} EtatRaspberry;
+
+/** État actuel de l'accumulateur. */
+static EtatAccumulateur etatAccumulateur = UTILISABLE;
+
+/** État actuel de l'alimentation. */
+static EtatAlimentation etatAlimentation = PRESENTE;
+
+/** État actuel du raspberry. */
+static EtatRaspberry etatRaspberry = PROBABLEMENT_ACTIF;
+
+/**
+ * Initialise les états internes.
+ */
 void initialiseAccumulateur() {
-    accumulateur.accumulateurDisponible = 0;
-    accumulateur.accumulateurEnCharge = 0;
+    etatAccumulateur = UTILISABLE;
+    etatAlimentation = PRESENTE;
+    etatRaspberry = PROBABLEMENT_ACTIF;
+}
+
+Accumulateur accumulateur;
+
+/**
+ * Calcule la configuration de l'accumulateur, selon les états de l'alimentation,
+ * l'accumulateur et le raspberry.
+ * @return La configuration de l'accumulateur.
+ */
+static Accumulateur *etatEnergie() {
+
+    // Présence et disponibilité de l'accumulateur:
     accumulateur.accumulateurPresent = 0;
+    accumulateur.accumulateurDisponible = 0;
+    if (etatAccumulateur != ABSENT) {
+        accumulateur.accumulateurPresent = 1;
+    }
+    if ( (etatAccumulateur == UTILISABLE) || (etatAccumulateur == UTILISABLE_MAIS_FAIBLE)) {
+        accumulateur.accumulateurDisponible = 1;
+    }
+
+
+    // Chargement ou sollicitation de l'accumulateur:
+    accumulateur.accumulateurEnCharge = 0;
     accumulateur.accumulateurSollicite = 0;
-}
-
-Accumulateur *mesureAlimentation(unsigned char valim) {
-    // Si l'alimentation tombe en dessous du 7.05V, on
-    // active l'accumulateur secondaire.
-    if (valim < 180) {
-        // Mais seulement si l'accumulateur secondaire est présent et disponible.
-        if (accumulateur.accumulateurPresent && accumulateur.accumulateurDisponible) {
-            accumulateur.accumulateurEnCharge = 0;
-            accumulateur.accumulateurSollicite = 1;
-        }
-    }
-    
-    // Si l'alimentation monte au dessus de 7.8V, on
-    // arrête de solliciter l'accumulateur secondaire.
-    if (valim > 198) {
+    if (etatAlimentation == PRESENTE) {
         accumulateur.accumulateurSollicite = 0;
-    }
-    
-    return &accumulateur;
-}
-
-Accumulateur *mesureBoost(unsigned char vboost) {
-    // Si la tension de sortie du convertisseur boost dépasse 9.5V, c'est
-    // parce que le raspberry a cessé de consommer du courant. On peut
-    // donc éteindre le convertisseur. 
-    if (vboost > 241) {
-        accumulateur.accumulateurSollicite = 0;
-    }
-    return &accumulateur;
-}
-
-Accumulateur *mesureAccumulateur(unsigned char vacc) {
-    // Si la tension de sortie de l'accumulateur est inférieur à 2V 
-    // ou supérieure à 4.5V, alors l'accumulateur n'est pas présent ou
-    // n'est pas utilisable.
-    if ( (vacc < 51) || (vacc > 114) ) {
-        accumulateur.accumulateurDisponible = 0;
-        accumulateur.accumulateurEnCharge = 0;
-        accumulateur.accumulateurPresent = 0;
-        return &accumulateur;
-    }
-
-    accumulateur.accumulateurPresent = 1;
-    
-    if (accumulateur.accumulateurEnCharge) {
-        // Si la tension de sortie de l'accumulateur est supérieure à 4.2,
-        // il est temps d'arrêter la charge:
-        if (vacc > 107) {
-            accumulateur.accumulateurEnCharge = 0;
-        }
-    } else {
-        // Si la tension de sortie de l'accumulateur est inférieur à 3.6V, 
-        // il est temps de le mettre en charge:
-        if (vacc < 91) {
+        if ( (etatAccumulateur == PAS_UTILISABLE) || (etatAccumulateur == UTILISABLE_MAIS_FAIBLE)) {
             accumulateur.accumulateurEnCharge = 1;
         }
-    }
-    
-    // Si la tension de sortie de l'accumulateur est supérieure à 3.2V,
-    // on considère que l'accumulateur est utilisable:
-    if (vacc > 80) {
-        accumulateur.accumulateurDisponible = 1;
     } else {
-        accumulateur.accumulateurDisponible = 0;
-        accumulateur.accumulateurSollicite = 0;
+        if ( (etatAccumulateur == UTILISABLE) || (etatAccumulateur == UTILISABLE_MAIS_FAIBLE)) {
+            if (etatRaspberry == PROBABLEMENT_ACTIF) {
+                accumulateur.accumulateurSollicite = 1;
+            }
+        }
     }
 
+    // Rend l'état de l'accumulateur.
     return &accumulateur;
 }
+
+Accumulateur *mesureAlimentation(unsigned char v) {
+    switch(etatAlimentation) {
+        case PRESENTE:
+            // Si l'alimentation tombe en dessous du 7.05V, elle n'est plus
+            // utilisable.
+            if (v < 180) {
+                etatAlimentation = DEFAILLANTE;
+            }
+            break;
+
+        case DEFAILLANTE:
+            // Si l'alimentation remonte au dessus de 7.8V, elle est
+            // utilisable à nouveau.
+            if (v > 198) {
+                etatAlimentation = PRESENTE;
+            }
+            break;
+    }
+
+    return etatEnergie();
+}
+
+Accumulateur *mesureBoost(unsigned char v) {
+    switch(etatRaspberry) {
+        // Si la tension de sortie du convertisseur boost dépasse 9.5V, c'est
+        // parce que le raspberry a cessé de consommer du courant.
+        case PROBABLEMENT_ACTIF:
+            if (v > 241) {
+                etatRaspberry = INACTIF;
+            }
+            break;
+    }
+    return etatEnergie();
+}
+
+Accumulateur *mesureAccumulateur(unsigned char vAccumulateur) {
+    if ( (vAccumulateur < 50) || (vAccumulateur > 114)) {
+        etatAccumulateur = ABSENT;
+    } else {
+        switch(etatAccumulateur) {
+            case ABSENT:
+                etatAccumulateur = PAS_UTILISABLE;
+                break;
+            case PAS_UTILISABLE:
+                if (vAccumulateur > 80) {
+                    etatAccumulateur = UTILISABLE_MAIS_FAIBLE;
+                }
+                break;
+            case UTILISABLE_MAIS_FAIBLE:
+                if (vAccumulateur < 80) {
+                    etatAccumulateur = PAS_UTILISABLE;
+                }
+                if (vAccumulateur > 107) {
+                    etatAccumulateur = UTILISABLE;
+                }
+                break;
+            case UTILISABLE:
+                if (vAccumulateur < 91) {
+                    if (vAccumulateur < 80) {
+                        etatAccumulateur = PAS_UTILISABLE;
+                    } else {
+                        etatAccumulateur = UTILISABLE_MAIS_FAIBLE;
+                    }
+                }
+                break;
+        }
+    }
+
+    return etatEnergie();
+}
+
 
 #ifdef TEST
 
@@ -98,8 +199,7 @@ static void peut_detecter_que_l_accumulateur_est_present() {
 }
 
 static void peut_completer_un_cycle_de_charge() {
-    initialiseAccumulateur();
-    
+    initialiseAccumulateur();    
     verifieEgalite("ACCCY01", mesureAccumulateur(CONVERSION_8BITS(42))->accumulateurEnCharge, 0);
     verifieEgalite("ACCCY02", mesureAccumulateur(CONVERSION_8BITS(39))->accumulateurEnCharge, 0);
     verifieEgalite("ACCCY03", mesureAccumulateur(CONVERSION_8BITS(36))->accumulateurEnCharge, 0);
