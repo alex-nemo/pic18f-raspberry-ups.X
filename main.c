@@ -1,5 +1,5 @@
 #include <xc.h>
-#include "accumulateur.h"
+#include "energie.h"
 #include "test.h"
 
 /**
@@ -23,23 +23,23 @@
  * Configure le circuit selon l'état de l'accumulateur.
  * @param accumulateur L'état de l'accumulateur.
  */
-void configureCircuit(Accumulateur *accumulateur) {
+void configureCircuit(Energie *energie) {
 
     // JAUNE: Si l'accumulateur n'est pas disponible, ou si il est en charge:
-    if ( (!accumulateur->accumulateurDisponible) || (accumulateur->accumulateurEnCharge)) {
+    if ( (!energie->accumulateurDisponible) || (energie->chargerAccumulateur)) {
         PORTAbits.RA0 = 1;
     } else {
         PORTAbits.RA0 = 0;        
     }
 
     // VERT: Si l'accumulateur est disponible:
-    PORTAbits.RA1 = accumulateur->accumulateurDisponible;
+    PORTAbits.RA1 = energie->accumulateurDisponible;
     
     // ROUGE: Si l'accumulateur est sollicité:
-    PORTAbits.RA2 = accumulateur->accumulateurSollicite;
+    PORTAbits.RA2 = energie->solliciterAccumulateur;
     
     // Convertisseur BOOST: pour solliciter l'accumulateur:
-    TRISBbits.RB3 = ~accumulateur->accumulateurSollicite;
+    TRISBbits.RB3 = ~energie->solliciterAccumulateur;
 }
 
 /**
@@ -57,7 +57,7 @@ typedef enum {
  */
 void interrupt low_priority bassePriorite() {
     static SourceAD sourceAD = ACCUMULATEUR;
-    Accumulateur *accumulateur;
+    Energie *energie;
     unsigned char conversion;
 
     // Lance une conversion Analogique / Digitale:
@@ -76,22 +76,22 @@ void interrupt low_priority bassePriorite() {
         PIR1bits.ADIF = 0;
         switch (sourceAD) {
             case ACCUMULATEUR:
-                accumulateur = mesureAccumulateur(conversion);
+                energie = mesureAccumulateur(conversion);
                 sourceAD = BOOST;
                 break;
                 
             case BOOST:
-                accumulateur = mesureBoost(conversion);
+                energie = mesureBoost(conversion);
                 sourceAD = ALIMENTATION;
                 break;
 
             case ALIMENTATION:
             default:
-                accumulateur = mesureAlimentation(conversion);
+                energie = mesureAlimentation(conversion);
                 sourceAD = ACCUMULATEUR;
                 break;
         }
-        configureCircuit(accumulateur);
+        configureCircuit(energie);
     }
 }
 
@@ -161,7 +161,7 @@ void main(void) {
 #ifdef TEST
 void main(void) {
     initialiseTests();
-    testeAccumulateur();
+    testeEnergie();
     finaliseTests();
     while(1);
 }

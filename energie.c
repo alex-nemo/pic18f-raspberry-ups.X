@@ -1,4 +1,4 @@
-#include "accumulateur.h"
+#include "energie.h"
 #include "test.h"
 
 /** 
@@ -65,53 +65,53 @@ static EtatRaspberry etatRaspberry = PROBABLEMENT_ACTIF;
 /**
  * Initialise les états internes.
  */
-void initialiseAccumulateur() {
+void initialiseEnergie() {
     etatAccumulateur = UTILISABLE;
     etatAlimentation = PRESENTE;
     etatRaspberry = PROBABLEMENT_ACTIF;
 }
 
-Accumulateur accumulateur;
+Energie energie;
 
 /**
  * Calcule la configuration de l'accumulateur, selon les états de l'alimentation,
  * l'accumulateur et le raspberry.
  * @return La configuration de l'accumulateur.
  */
-static Accumulateur *etatEnergie() {
+static Energie *etatEnergie() {
 
     // Présence et disponibilité de l'accumulateur:
-    accumulateur.accumulateurPresent = 0;
-    accumulateur.accumulateurDisponible = 0;
+    energie.accumulateurPresent = 0;
+    energie.accumulateurDisponible = 0;
     if (etatAccumulateur != ABSENT) {
-        accumulateur.accumulateurPresent = 1;
+        energie.accumulateurPresent = 1;
     }
     if ( (etatAccumulateur == UTILISABLE) || (etatAccumulateur == UTILISABLE_MAIS_FAIBLE)) {
-        accumulateur.accumulateurDisponible = 1;
+        energie.accumulateurDisponible = 1;
     }
 
 
     // Chargement ou sollicitation de l'accumulateur:
-    accumulateur.accumulateurEnCharge = 0;
-    accumulateur.accumulateurSollicite = 0;
+    energie.chargerAccumulateur = 0;
+    energie.solliciterAccumulateur = 0;
     if (etatAlimentation == PRESENTE) {
-        accumulateur.accumulateurSollicite = 0;
+        energie.solliciterAccumulateur = 0;
         if ( (etatAccumulateur == PAS_UTILISABLE) || (etatAccumulateur == UTILISABLE_MAIS_FAIBLE)) {
-            accumulateur.accumulateurEnCharge = 1;
+            energie.chargerAccumulateur = 1;
         }
     } else {
         if ( (etatAccumulateur == UTILISABLE) || (etatAccumulateur == UTILISABLE_MAIS_FAIBLE)) {
             if (etatRaspberry == PROBABLEMENT_ACTIF) {
-                accumulateur.accumulateurSollicite = 1;
+                energie.solliciterAccumulateur = 1;
             }
         }
     }
 
     // Rend l'état de l'accumulateur.
-    return &accumulateur;
+    return &energie;
 }
 
-Accumulateur *mesureAlimentation(unsigned char v) {
+Energie *mesureAlimentation(unsigned char v) {
     switch(etatAlimentation) {
         case PRESENTE:
             // Si l'alimentation tombe en dessous du 7.05V, elle n'est plus
@@ -133,7 +133,7 @@ Accumulateur *mesureAlimentation(unsigned char v) {
     return etatEnergie();
 }
 
-Accumulateur *mesureBoost(unsigned char v) {
+Energie *mesureBoost(unsigned char v) {
     switch(etatRaspberry) {
         // Si la tension de sortie du convertisseur boost dépasse 9.5V, c'est
         // parce que le raspberry a cessé de consommer du courant.
@@ -146,7 +146,7 @@ Accumulateur *mesureBoost(unsigned char v) {
     return etatEnergie();
 }
 
-Accumulateur *mesureAccumulateur(unsigned char vAccumulateur) {
+Energie *mesureAccumulateur(unsigned char vAccumulateur) {
     if ( (vAccumulateur < 50) || (vAccumulateur > 114)) {
         etatAccumulateur = ABSENT;
     } else {
@@ -191,7 +191,7 @@ Accumulateur *mesureAccumulateur(unsigned char vAccumulateur) {
 #define CONVERSION_8BITS(x) ((x * 255)/100)
 
 static void peut_detecter_que_l_accumulateur_est_present() {
-    initialiseAccumulateur();
+    initialiseEnergie();
     verifieEgalite("ACCPR1", mesureAccumulateur(CONVERSION_8BITS(19))->accumulateurPresent, 0);
     verifieEgalite("ACCPR2", mesureAccumulateur(CONVERSION_8BITS(20))->accumulateurPresent, 1);
     verifieEgalite("ACCPR3", mesureAccumulateur(CONVERSION_8BITS(45))->accumulateurPresent, 1);
@@ -199,22 +199,22 @@ static void peut_detecter_que_l_accumulateur_est_present() {
 }
 
 static void peut_completer_un_cycle_de_charge() {
-    initialiseAccumulateur();    
-    verifieEgalite("ACCCY01", mesureAccumulateur(CONVERSION_8BITS(42))->accumulateurEnCharge, 0);
-    verifieEgalite("ACCCY02", mesureAccumulateur(CONVERSION_8BITS(39))->accumulateurEnCharge, 0);
-    verifieEgalite("ACCCY03", mesureAccumulateur(CONVERSION_8BITS(36))->accumulateurEnCharge, 0);
-    verifieEgalite("ACCCY04", mesureAccumulateur(CONVERSION_8BITS(35))->accumulateurEnCharge, 1);
-    verifieEgalite("ACCCY05", mesureAccumulateur(CONVERSION_8BITS(39))->accumulateurEnCharge, 1);
-    verifieEgalite("ACCCY06", mesureAccumulateur(CONVERSION_8BITS(42))->accumulateurEnCharge, 1);
-    verifieEgalite("ACCCY07", mesureAccumulateur(CONVERSION_8BITS(43))->accumulateurEnCharge, 0);
-    verifieEgalite("ACCCY08", mesureAccumulateur(CONVERSION_8BITS(42))->accumulateurEnCharge, 0);
-    verifieEgalite("ACCCY09", mesureAccumulateur(CONVERSION_8BITS(38))->accumulateurEnCharge, 0);
-    verifieEgalite("ACCCY10", mesureAccumulateur(CONVERSION_8BITS(36))->accumulateurEnCharge, 0);
-    verifieEgalite("ACCCY11", mesureAccumulateur(CONVERSION_8BITS(35))->accumulateurEnCharge, 1);    
+    initialiseEnergie();    
+    verifieEgalite("ACCCY01", mesureAccumulateur(CONVERSION_8BITS(42))->chargerAccumulateur, 0);
+    verifieEgalite("ACCCY02", mesureAccumulateur(CONVERSION_8BITS(39))->chargerAccumulateur, 0);
+    verifieEgalite("ACCCY03", mesureAccumulateur(CONVERSION_8BITS(36))->chargerAccumulateur, 0);
+    verifieEgalite("ACCCY04", mesureAccumulateur(CONVERSION_8BITS(35))->chargerAccumulateur, 1);
+    verifieEgalite("ACCCY05", mesureAccumulateur(CONVERSION_8BITS(39))->chargerAccumulateur, 1);
+    verifieEgalite("ACCCY06", mesureAccumulateur(CONVERSION_8BITS(42))->chargerAccumulateur, 1);
+    verifieEgalite("ACCCY07", mesureAccumulateur(CONVERSION_8BITS(43))->chargerAccumulateur, 0);
+    verifieEgalite("ACCCY08", mesureAccumulateur(CONVERSION_8BITS(42))->chargerAccumulateur, 0);
+    verifieEgalite("ACCCY09", mesureAccumulateur(CONVERSION_8BITS(38))->chargerAccumulateur, 0);
+    verifieEgalite("ACCCY10", mesureAccumulateur(CONVERSION_8BITS(36))->chargerAccumulateur, 0);
+    verifieEgalite("ACCCY11", mesureAccumulateur(CONVERSION_8BITS(35))->chargerAccumulateur, 1);    
 }
 
 static void peut_detecter_que_l_accumulateur_est_disponible() {
-    initialiseAccumulateur();
+    initialiseEnergie();
     
     verifieEgalite("ACCDI01", mesureAccumulateur(CONVERSION_8BITS(31))->accumulateurDisponible, 0);
     verifieEgalite("ACCDI02", mesureAccumulateur(CONVERSION_8BITS(32))->accumulateurDisponible, 1);
@@ -223,57 +223,57 @@ static void peut_detecter_que_l_accumulateur_est_disponible() {
 }
 
 static void sollicite_l_accumulateur_si_l_alimentation_fait_defaut() {
-    initialiseAccumulateur();
+    initialiseEnergie();
     mesureAccumulateur(CONVERSION_8BITS(40));
-    verifieEgalite("ACCSOL01", mesureAlimentation(CONVERSION_8BITS(71))->accumulateurSollicite, 0);
-    verifieEgalite("ACCSOL02", mesureAlimentation(CONVERSION_8BITS(70))->accumulateurSollicite, 1);
-    verifieEgalite("ACCSOL03", mesureAlimentation(CONVERSION_8BITS(71))->accumulateurSollicite, 1);
-    verifieEgalite("ACCSOL04", mesureAlimentation(CONVERSION_8BITS(78))->accumulateurSollicite, 1);
-    verifieEgalite("ACCSOL04", mesureAlimentation(CONVERSION_8BITS(79))->accumulateurSollicite, 0);
-    verifieEgalite("ACCSOL05", mesureAlimentation(CONVERSION_8BITS(78))->accumulateurSollicite, 0);
+    verifieEgalite("ACCSOL01", mesureAlimentation(CONVERSION_8BITS(71))->solliciterAccumulateur, 0);
+    verifieEgalite("ACCSOL02", mesureAlimentation(CONVERSION_8BITS(70))->solliciterAccumulateur, 1);
+    verifieEgalite("ACCSOL03", mesureAlimentation(CONVERSION_8BITS(71))->solliciterAccumulateur, 1);
+    verifieEgalite("ACCSOL04", mesureAlimentation(CONVERSION_8BITS(78))->solliciterAccumulateur, 1);
+    verifieEgalite("ACCSOL04", mesureAlimentation(CONVERSION_8BITS(79))->solliciterAccumulateur, 0);
+    verifieEgalite("ACCSOL05", mesureAlimentation(CONVERSION_8BITS(78))->solliciterAccumulateur, 0);
 }
 
 static void ne_sollicite_plus_l_accumulateur_si_le_raspberry_s_eteint() {
-    initialiseAccumulateur();
+    initialiseEnergie();
     mesureAccumulateur(CONVERSION_8BITS(40));
     mesureAlimentation(CONVERSION_8BITS(60));
-    verifieEgalite("ACCAU01", mesureBoost(CONVERSION_8BITS(85))->accumulateurSollicite, 1);
-    verifieEgalite("ACCAU02", mesureBoost(CONVERSION_8BITS(90))->accumulateurSollicite, 1);
-    verifieEgalite("ACCAU03", mesureBoost(CONVERSION_8BITS(95))->accumulateurSollicite, 0);
+    verifieEgalite("ACCAU01", mesureBoost(CONVERSION_8BITS(85))->solliciterAccumulateur, 1);
+    verifieEgalite("ACCAU02", mesureBoost(CONVERSION_8BITS(90))->solliciterAccumulateur, 1);
+    verifieEgalite("ACCAU03", mesureBoost(CONVERSION_8BITS(95))->solliciterAccumulateur, 0);
 }
 
 static void ne_solicite_plus_l_accumulateur_si_il_est_pas_disponible() {
-    initialiseAccumulateur();
+    initialiseEnergie();
     
     mesureAccumulateur(CONVERSION_8BITS(41));
-    verifieEgalite("ACCSL01", mesureAlimentation(CONVERSION_8BITS(59))->accumulateurSollicite, 1);
+    verifieEgalite("ACCSL01", mesureAlimentation(CONVERSION_8BITS(59))->solliciterAccumulateur, 1);
     
     mesureAccumulateur(CONVERSION_8BITS(32));
-    verifieEgalite("ACCSL02", mesureAlimentation(CONVERSION_8BITS(59))->accumulateurSollicite, 1);
+    verifieEgalite("ACCSL02", mesureAlimentation(CONVERSION_8BITS(59))->solliciterAccumulateur, 1);
 
     mesureAccumulateur(CONVERSION_8BITS(31));
-    verifieEgalite("ACCSL03", mesureAlimentation(CONVERSION_8BITS(59))->accumulateurSollicite, 0);
+    verifieEgalite("ACCSL03", mesureAlimentation(CONVERSION_8BITS(59))->solliciterAccumulateur, 0);
 
     mesureAccumulateur(CONVERSION_8BITS(32));
-    verifieEgalite("ACCSL04", mesureAlimentation(CONVERSION_8BITS(59))->accumulateurSollicite, 1);
+    verifieEgalite("ACCSL04", mesureAlimentation(CONVERSION_8BITS(59))->solliciterAccumulateur, 1);
 }
 
 static void ne_solicite_pas_l_accumulateur_si_il_est_pas_disponible() {
-    initialiseAccumulateur();
+    initialiseEnergie();
 
     mesureAccumulateur(CONVERSION_8BITS(31));
-    verifieEgalite("ACCSD01", mesureAlimentation(CONVERSION_8BITS(59))->accumulateurSollicite, 0);
+    verifieEgalite("ACCSD01", mesureAlimentation(CONVERSION_8BITS(59))->solliciterAccumulateur, 0);
     
 }
 
 static void ne_solicite_pas_l_accumulateur_si_il_est_pas_present() {
-    initialiseAccumulateur();
+    initialiseEnergie();
 
     mesureAccumulateur(CONVERSION_8BITS(19));
-    verifieEgalite("ACCSP01", mesureAlimentation(CONVERSION_8BITS(59))->accumulateurSollicite, 0);
+    verifieEgalite("ACCSP01", mesureAlimentation(CONVERSION_8BITS(59))->solliciterAccumulateur, 0);
 }
 
-void testeAccumulateur() {
+void testeEnergie() {
     peut_detecter_que_l_accumulateur_est_present();
     peut_detecter_que_l_accumulateur_est_disponible();
     peut_completer_un_cycle_de_charge();
