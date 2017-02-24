@@ -126,6 +126,7 @@ Energie *mesureAlimentation(unsigned char v) {
             // utilisable à nouveau.
             if (v > 198) {
                 etatAlimentation = PRESENTE;
+                etatRaspberry = PROBABLEMENT_ACTIF;
             }
             break;
     }
@@ -158,6 +159,9 @@ Energie *mesureAccumulateur(unsigned char vAccumulateur) {
                 if (vAccumulateur > 80) {
                     etatAccumulateur = UTILISABLE_MAIS_FAIBLE;
                 }
+                if (vAccumulateur > 91) {
+                    etatAccumulateur = UTILISABLE;
+                }
                 break;
             case UTILISABLE_MAIS_FAIBLE:
                 if (vAccumulateur < 80) {
@@ -169,11 +173,10 @@ Energie *mesureAccumulateur(unsigned char vAccumulateur) {
                 break;
             case UTILISABLE:
                 if (vAccumulateur < 91) {
-                    if (vAccumulateur < 80) {
-                        etatAccumulateur = PAS_UTILISABLE;
-                    } else {
-                        etatAccumulateur = UTILISABLE_MAIS_FAIBLE;
-                    }
+                    etatAccumulateur = UTILISABLE_MAIS_FAIBLE;   
+                }
+                if (vAccumulateur < 80) {
+                    etatAccumulateur = PAS_UTILISABLE;
                 }
                 break;
         }
@@ -242,6 +245,24 @@ static void ne_sollicite_plus_l_accumulateur_si_le_raspberry_s_eteint() {
     verifieEgalite("ACCAU03", mesureBoost(CONVERSION_8BITS(95))->solliciterAccumulateur, 0);
 }
 
+
+static void assume_que_le_raspberry_s_allume_si_l_alimentation_revient() {
+    initialiseEnergie();
+
+    mesureAccumulateur(CONVERSION_8BITS(40));   // L'accumulateur est prêt.
+    mesureAlimentation(CONVERSION_8BITS(60));   // L'alimentation défaille.
+    mesureBoost(CONVERSION_8BITS(95));          // Le convertisseur sature car pas de raspberry.
+    
+    mesureAlimentation(CONVERSION_8BITS(80));   // L'alimentation est de retour.
+    mesureAlimentation(CONVERSION_8BITS(60));   // L'alimentation est repartie.
+    
+    // On sollicite quand même l'accumulateur:
+    verifieEgalite("ACCREV01", mesureBoost(CONVERSION_8BITS(60))->solliciterAccumulateur, 1);
+    
+    // Si le convertisseur sature encore, on l'arrête:
+    verifieEgalite("ACCREV02", mesureBoost(CONVERSION_8BITS(95))->solliciterAccumulateur, 0);
+}
+
 static void ne_solicite_plus_l_accumulateur_si_il_est_pas_disponible() {
     initialiseEnergie();
     
@@ -280,10 +301,13 @@ void testeEnergie() {
     
     sollicite_l_accumulateur_si_l_alimentation_fait_defaut();
     ne_sollicite_plus_l_accumulateur_si_le_raspberry_s_eteint();
+    assume_que_le_raspberry_s_allume_si_l_alimentation_revient();
  
     ne_solicite_plus_l_accumulateur_si_il_est_pas_disponible();
     ne_solicite_pas_l_accumulateur_si_il_est_pas_disponible();
     ne_solicite_pas_l_accumulateur_si_il_est_pas_present();
+    
+    
 }
 
 #endif
