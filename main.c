@@ -20,6 +20,23 @@
 #ifndef TEST
 
 /**
+ * Maintient l'alimentation en gardant ouvert le transistor
+ * d'entrée.
+ */
+void maintenirAlimentation() {
+    TRISBbits.RB5 = 0;
+    PORTBbits.RB5 = 0;
+}
+
+/**
+ * Coupe l'alimentation en fermant le transistor d'entrée.
+ * Après ceci, le micro-contrôleur n'est plus alimenté.
+ */
+void couperAlimentation() {
+    TRISBbits.RB5 = 1;
+}
+
+/**
  * Configure le circuit selon l'état de l'accumulateur.
  * @param accumulateur L'état de l'accumulateur.
  */
@@ -40,6 +57,11 @@ void configureCircuit(Energie *energie) {
     
     // Convertisseur BOOST: pour solliciter l'accumulateur:
     TRISBbits.RB3 = ~energie->solliciterAccumulateur;
+    
+    // Isoler l'accumulateur:
+    if (energie->isolerAccumulateur) {
+        couperAlimentation();
+    }
 }
 
 /**
@@ -153,6 +175,7 @@ static void hardwareInitialise() {
  * Point d'entrée pour l'émetteur de radio contrôle.
  */
 void main(void) {
+    maintenirAlimentation();
     hardwareInitialise();
     while(1);
 }

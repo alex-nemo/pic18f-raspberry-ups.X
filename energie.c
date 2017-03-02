@@ -80,22 +80,17 @@ Energie energie;
  */
 static Energie *etatEnergie() {
 
-    // Présence et disponibilité de l'accumulateur:
-    energie.accumulateurPresent = 0;
+    // Disponibilité de l'accumulateur:
     energie.accumulateurDisponible = 0;
-    if (etatAccumulateur != ABSENT) {
-        energie.accumulateurPresent = 1;
-    }
     if ( (etatAccumulateur == UTILISABLE) || (etatAccumulateur == UTILISABLE_MAIS_FAIBLE)) {
         energie.accumulateurDisponible = 1;
     }
 
-
     // Chargement ou sollicitation de l'accumulateur:
     energie.chargerAccumulateur = 0;
     energie.solliciterAccumulateur = 0;
+    energie.isolerAccumulateur = 0;
     if (etatAlimentation == PRESENTE) {
-        energie.solliciterAccumulateur = 0;
         if ( (etatAccumulateur == PAS_UTILISABLE) || (etatAccumulateur == UTILISABLE_MAIS_FAIBLE)) {
             energie.chargerAccumulateur = 1;
         }
@@ -104,6 +99,15 @@ static Energie *etatEnergie() {
             if (etatRaspberry == PROBABLEMENT_ACTIF) {
                 energie.solliciterAccumulateur = 1;
             }
+        } 
+        // Si l'accumulateur n'est pas utilisable, autant l'isoler:
+        else {
+            energie.isolerAccumulateur = 1;
+        }
+        
+        // Si le raspberry est éteint, on peut isoler l'accumulateur:
+        if (etatRaspberry == INACTIF) {
+            energie.isolerAccumulateur = 1;
         }
     }
 
@@ -193,14 +197,6 @@ Energie *mesureAccumulateur(unsigned char vAccumulateur) {
 // Exemple: 5 Volts ==> 50 ==> 127
 #define CONVERSION_8BITS(x) ((x * 255)/100)
 
-static void peut_detecter_que_l_accumulateur_est_present() {
-    initialiseEnergie();
-    verifieEgalite("ACCPR1", mesureAccumulateur(CONVERSION_8BITS(19))->accumulateurPresent, 0);
-    verifieEgalite("ACCPR2", mesureAccumulateur(CONVERSION_8BITS(20))->accumulateurPresent, 1);
-    verifieEgalite("ACCPR3", mesureAccumulateur(CONVERSION_8BITS(45))->accumulateurPresent, 1);
-    verifieEgalite("ACCPR4", mesureAccumulateur(CONVERSION_8BITS(46))->accumulateurPresent, 0);
-}
-
 static void peut_completer_un_cycle_de_charge() {
     initialiseEnergie();    
     verifieEgalite("ACCCY01", mesureAccumulateur(CONVERSION_8BITS(42))->chargerAccumulateur, 0);
@@ -236,6 +232,23 @@ static void sollicite_l_accumulateur_si_l_alimentation_fait_defaut() {
     verifieEgalite("ACCSOL05", mesureAlimentation(CONVERSION_8BITS(78))->solliciterAccumulateur, 0);
 }
 
+static void isole_l_accumulateur_si_le_raspberry_s_eteint() {
+    initialiseEnergie();
+    mesureAccumulateur(CONVERSION_8BITS(40));
+    mesureAlimentation(CONVERSION_8BITS(60));
+    verifieEgalite("ACCIS01", mesureBoost(CONVERSION_8BITS(85))->isolerAccumulateur, 0);
+    verifieEgalite("ACCIS02", mesureBoost(CONVERSION_8BITS(90))->isolerAccumulateur, 0);
+    verifieEgalite("ACCIS03", mesureBoost(CONVERSION_8BITS(95))->isolerAccumulateur, 1);
+}
+
+static void isole_l_accumulateur_si_pas_disponible_quand_l_alimentation_fait_defaut() {
+    initialiseEnergie();
+    mesureAlimentation(CONVERSION_8BITS(60));
+
+    verifieEgalite("ACCIA01", mesureAccumulateur(CONVERSION_8BITS(40))->isolerAccumulateur, 0);
+    verifieEgalite("ACCIA02", mesureAccumulateur(CONVERSION_8BITS(28))->isolerAccumulateur, 1);
+}
+
 static void ne_sollicite_plus_l_accumulateur_si_le_raspberry_s_eteint() {
     initialiseEnergie();
     mesureAccumulateur(CONVERSION_8BITS(40));
@@ -244,7 +257,6 @@ static void ne_sollicite_plus_l_accumulateur_si_le_raspberry_s_eteint() {
     verifieEgalite("ACCAU02", mesureBoost(CONVERSION_8BITS(90))->solliciterAccumulateur, 1);
     verifieEgalite("ACCAU03", mesureBoost(CONVERSION_8BITS(95))->solliciterAccumulateur, 0);
 }
-
 
 static void assume_que_le_raspberry_s_allume_si_l_alimentation_revient() {
     initialiseEnergie();
@@ -287,27 +299,19 @@ static void ne_solicite_pas_l_accumulateur_si_il_est_pas_disponible() {
     
 }
 
-static void ne_solicite_pas_l_accumulateur_si_il_est_pas_present() {
-    initialiseEnergie();
-
-    mesureAccumulateur(CONVERSION_8BITS(19));
-    verifieEgalite("ACCSP01", mesureAlimentation(CONVERSION_8BITS(59))->solliciterAccumulateur, 0);
-}
-
 void testeEnergie() {
-    peut_detecter_que_l_accumulateur_est_present();
     peut_detecter_que_l_accumulateur_est_disponible();
     peut_completer_un_cycle_de_charge();
     
     sollicite_l_accumulateur_si_l_alimentation_fait_defaut();
     ne_sollicite_plus_l_accumulateur_si_le_raspberry_s_eteint();
     assume_que_le_raspberry_s_allume_si_l_alimentation_revient();
- 
+
+    isole_l_accumulateur_si_le_raspberry_s_eteint();
+    isole_l_accumulateur_si_pas_disponible_quand_l_alimentation_fait_defaut();
+
     ne_solicite_plus_l_accumulateur_si_il_est_pas_disponible();
-    ne_solicite_pas_l_accumulateur_si_il_est_pas_disponible();
-    ne_solicite_pas_l_accumulateur_si_il_est_pas_present();
-    
-    
+    ne_solicite_pas_l_accumulateur_si_il_est_pas_disponible();    
 }
 
 #endif

@@ -5,14 +5,14 @@
  * Indique l'état de l'administration d'énergie.
  */
 typedef struct {
-    /** Indique que l'accumulateur est physiquement présent sur le circuit. */
-    unsigned char accumulateurPresent : 1;
-    /** Indique qu'il faut charger l'accumulateur.*/
-    unsigned char chargerAccumulateur : 1;
     /** Indique que l'accumulateur a de la charge disponible. */
     unsigned char accumulateurDisponible : 1;
-    /** Indique qu'il faut puiser l'energie de l'accumulateur. */
+    /** Indique qu'il faut charger l'accumulateur.*/
+    unsigned char chargerAccumulateur : 1;
+    /** Indique qu'il faut puiser l'énergie de l'accumulateur. */
     unsigned char solliciterAccumulateur  : 1;
+    /** Indique que le module d'énergie peut s'éteindre. */
+    unsigned char isolerAccumulateur : 1;
 } Energie;
 
 /**
