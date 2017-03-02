@@ -1,0 +1,74 @@
+PIC18F-RASPBERRY-UPS INFORMATION FILE v1.0.0
+============================================
+
+In case of difficulty, please e-mail jmgonet@yahoo.com
+
+Tool set up for Proteus layout 'pic18f-raspberry-ups.pdsprj'.
+CADCAM generated at 6:19:26 PM on Thursday, March 2, 2017.
+
+Connector P1ALIM:
+-----------------
+Pads for connector P1ALIM are rectangular through-hole. 
+I've marked their contour in layer "Mechanical 1".
+
+If you can't make it rectangular, then oval will do it as well.
+
+File List
+---------
+Top Copper              : pic18f-raspberry-ups - CADCAM Top Copper.TXT
+Bottom Copper           : pic18f-raspberry-ups - CADCAM Bottom Copper.TXT
+Top Silk Screen         : pic18f-raspberry-ups - CADCAM Top Silk Screen.TXT
+Top Solder Resist       : pic18f-raspberry-ups - CADCAM Top Solder Resist.TXT
+Bottom Solder Resist    : pic18f-raspberry-ups - CADCAM Bottom Solder Resist.TXT
+Mechanical 1            : pic18f-raspberry-ups - CADCAM Mechanical 1.TXT
+Drill                   : pic18f-raspberry-ups - CADCAM Drill.TXT
+
+Photoplotter Setup
+------------------
+Format: RS274X, ASCII, 2.4, imperial, absolute, eob=*, LZO
+Notes:  D=Diameter, S=Side, W=Width, H=Height, C=Chamfer
+
+D10	CIRCLE  D=50th                                                            DRAW
+D11	CIRCLE  D=25th                                                            DRAW
+D12	CIRCLE  D=30th                                                            FLASH
+D13	SQUARE  S=80th                                                            FLASH
+D14	CIRCLE  D=70th                                                            FLASH
+D15	SQUARE  S=60th                                                            FLASH
+D16	CIRCLE  D=60th                                                            FLASH
+D17	CIRCLE  D=80th                                                            FLASH
+D18	CIRCLE  D=90th                                                            FLASH
+D19	CIRCLE  D=150th                                                           FLASH
+D70	CIRCLE  D=50th                                                            FLASH
+D71	CIRCLE  D=2.4th                                                           DRAW
+D20	SQUARE  S=50th                                                            FLASH
+D21	SQUARE  S=50.3th                                                          FLASH
+D22	CIRCLE  D=50.3th                                                          FLASH
+D23	SQUARE  S=41.3th                                                          FLASH
+D24	CIRCLE  D=41.3th                                                          FLASH
+D25	CIRCLE  D=8th                                                             DRAW
+D26	CIRCLE  D=20th                                                            DRAW
+D27	CIRCLE  D=6th                                                             DRAW
+D28	CIRCLE  D=4.7th                                                           DRAW
+D29	CIRCLE  D=7.8th                                                           DRAW
+D72	CIRCLE  D=40th                                                            FLASH
+D73	CIRCLE  D=100th                                                           FLASH
+D30	CIRCLE  D=160th                                                           FLASH
+
+NC Drill Setup
+--------------
+Format: ASCII, 2.4, imperial, absolute, eob=<CR><LF>, no zero suppression.
+Notes:  Tool sizes are diameters. Layer sets are in brackets - 0=TOP, 15=BOTTOM, 1-14=INNER.
+
+T01	15th (0-15) Plated
+T02	40th (0-15) Plated
+T03	30th (0-15) Plated
+T04	125.9th (0-15) Plated
+T05	38th (0-15) Plated
+T06	50th (0-15) Plated
+T07	128th (0-15) Plated
+T08	39.3th (0-15) Plated
+T09	33.4th (0-15) Plated
+T10	27.5th (0-15) Plated
+
+
+[END OF FILE]
