@@ -1,4 +1,6 @@
 #include <xc.h>
+#include "i2c.h"
+#include "file.h"
 #include "energie.h"
 #include "test.h"
 
@@ -64,12 +66,12 @@ void configureCircuit(Energie *energie) {
 
 /**
  * Énumère les sources de conversion Analogique/Digital.
- * Intègre le numéro de canal (AN1... AN6) dans l'énumération.
+ * Intègre le numéro de canal analogique (AN1... AN6).
  */
 typedef enum {
-    ACCUMULATEUR = 2,
     ALIMENTATION = 0,
-    BOOST = 1
+    BOOST = 1,
+    ACCUMULATEUR = 2
 } SourceAD;
 
 /**
@@ -96,17 +98,20 @@ void interrupt low_priority bassePriorite() {
         PIR1bits.ADIF = 0;
         switch (sourceAD) {
             case ACCUMULATEUR:
+                i2cExposeValeur(2, conversion);
                 energie = mesureAccumulateur(conversion);
                 sourceAD = BOOST;
                 break;
                 
             case BOOST:
+                i2cExposeValeur(1, conversion);
                 energie = mesureBoost(conversion);
                 sourceAD = ALIMENTATION;
                 break;
 
             case ALIMENTATION:
             default:
+                i2cExposeValeur(0, conversion);
                 energie = mesureAlimentation(conversion);
                 sourceAD = ACCUMULATEUR;
                 break;
@@ -163,7 +168,21 @@ static void hardwareInitialise() {
     INTCONbits.TMR0IE = 1;
     INTCONbits.TMR0IF = 0;
     INTCON2bits.TMR0IP = 0;
+
+    // Active le MSSP1 en mode Esclave I2C:
+    SSP1CON1bits.SSPEN = 1;             // Active le module SSP.    
+    
+    SSP1ADD = LECTURE_ALIMENTATION;     // Adresse de l'esclave.
+    SSP1MSK = I2C_MASQUE_ADRESSES_ESCLAVES;
+    SSP1CON1bits.SSPM = 0b1110;         // SSP1 en mode esclave I2C avec adresse de 7 bits et interruptions STOP et START.
         
+    SSP1CON3bits.PCIE = 0;              // Désactive l'interruption en cas STOP.
+    SSP1CON3bits.SCIE = 0;              // Désactive l'interruption en cas de START.
+    SSP1CON3bits.SBCDE = 0;             // Désactive l'interruption en cas de collision.
+
+    PIE1bits.SSP1IE = 1;                // Interruption en cas de transmission I2C...
+    IPR1bits.SSP1IP = 0;                // ... de basse priorité.
+    
     // Active les interruptions générales:
     RCONbits.IPEN = 1;
     INTCONbits.GIEH = 1;
@@ -184,6 +203,7 @@ void main(void) {
 void main(void) {
     initialiseTests();
     testeEnergie();
+    testeFile();
     finaliseTests();
     while(1);
 }
