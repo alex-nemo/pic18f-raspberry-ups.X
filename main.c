@@ -5,17 +5,14 @@
 /**
  * Bits de configuration:
  */
-
-// Oscillateur interne:
-#pragma config OSC = INTIO2     // Internal RC oscillator, port function on RA6 and port function on RA7
-#pragma config IESO = OFF       // Internal External Switchover mode enabled.
-#pragma config FSCM = OFF       // Fail-Safe Clock Monitor disabled
+#pragma config FOSC = INTIO67   // Osc. interne, A6 et A7 comme IO.
+#pragma config IESO = OFF       // Pas d'osc. au démarrage.
+#pragma config FCMEN = OFF      // Pas de monitorage de l'oscillateur.
 
 // Nécessaires pour ICSP / ICD:
-#pragma config DEBUG = ON       // Background debugger enabled, RB6 and RB7 are dedicated to In-Circuit Debug.
-#pragma config MCLRE = ON       // MCLR pin enabled, RA5 input pin disabled
-#pragma config WDT = OFF        // Watchdog inactif.
-#pragma config LVP = OFF        // Low-Voltage ICSP disabled.
+#pragma config MCLRE = EXTMCLR  // RE3 est actif comme master reset.
+#pragma config WDTEN = OFF      // Watchdog inactif.
+#pragma config LVP = OFF        // Single Supply Enable bits off.
 
 #ifndef TEST
 
@@ -23,17 +20,17 @@
  * Maintient l'alimentation en gardant ouvert le transistor
  * d'entrée.
  */
-void maintenirAlimentation() {
-    TRISBbits.RB5 = 0;
-    PORTBbits.RB5 = 0;
+void maintientAlimentation() {
+    TRISAbits.RA5 = 0;
+    PORTAbits.RA5 = 1;
 }
 
 /**
  * Coupe l'alimentation en fermant le transistor d'entrée.
  * Après ceci, le micro-contrôleur n'est plus alimenté.
  */
-void couperAlimentation() {
-    TRISBbits.RB5 = 1;
+void coupeAlimentation() {
+    TRISAbits.RA5 = 1;
 }
 
 /**
@@ -44,23 +41,24 @@ void configureCircuit(Energie *energie) {
 
     // JAUNE: Si l'accumulateur n'est pas disponible, ou si il est en charge:
     if ( (!energie->accumulateurDisponible) || (energie->chargerAccumulateur)) {
-        PORTAbits.RA0 = 1;
+        PORTCbits.RC1 = 1;
     } else {
-        PORTAbits.RA0 = 0;        
+        PORTCbits.RC1 = 0;        
     }
-
+    PORTAbits.RA6 = energie->chargerAccumulateur;
+    
     // VERT: Si l'accumulateur est disponible:
-    PORTAbits.RA1 = energie->accumulateurDisponible;
+    PORTCbits.RC0 = energie->accumulateurDisponible;
     
     // ROUGE: Si l'accumulateur est sollicité:
-    PORTAbits.RA2 = energie->solliciterAccumulateur;
+    PORTCbits.RC5 = energie->solliciterAccumulateur;
     
     // Convertisseur BOOST: pour solliciter l'accumulateur:
-    TRISBbits.RB3 = ~energie->solliciterAccumulateur;
+    TRISCbits.RC2 = ~energie->solliciterAccumulateur;
     
     // Isoler l'accumulateur:
     if (energie->isolerAccumulateur) {
-        couperAlimentation();
+        coupeAlimentation();
     }
 }
 
@@ -69,9 +67,9 @@ void configureCircuit(Energie *energie) {
  * Intègre le numéro de canal (AN1... AN6) dans l'énumération.
  */
 typedef enum {
-    ACCUMULATEUR = 4,
-    ALIMENTATION = 6,
-    BOOST = 5
+    ACCUMULATEUR = 2,
+    ALIMENTATION = 0,
+    BOOST = 1
 } SourceAD;
 
 /**
@@ -122,29 +120,41 @@ void interrupt low_priority bassePriorite() {
  */
 static void hardwareInitialise() {
     // Horloge à 8MHz:
-    OSCCONbits.IRCF = 7;    // 7 ==> 8MHz
+    OSCCONbits.IRCF = 6;    // 6 ==> 8MHz
     
-    // Configuration des ports d'entrée / sortie
-    TRISA = 0b00000000;
-    TRISB = 0b00010011;
+    // Entrées analogiques:
+    ANSELA = 0b00000111;
+    ANSELB = 0;
+    ANSELC = 0;
+    
+    // Configure le convertisseur analogique pour un temps de conversion de 24uS
+    ADCON2bits.ADFM = 0;    // Justification à gauche.
+    ADCON2bits.ADCS = 5;    // Horloge de conversion: Fosc / 8
+    ADCON2bits.ACQT = 5;    // Conversion: 12 TAD.
+    ADCON0bits.ADON = 1;    // Active le convertisseur.
+    
+    PIE1bits.ADIE = 1;      // Interruptions du module A/D
+    IPR1bits.ADIP = 0;      // Basse priorité.
 
-    // Désactive la charge lente de l'accumulateur secondaire:
-    TRISAbits.RA7 = 1;
+    // Entrées digitales:
+    TRISA = 0b00011111;
+    TRISB = 0b11111111;
+    TRISC = 0b11011000;
+
+    // Désactive la charge de l'accumulateur:
+    PORTAbits.RA6 = 0;
     PORTAbits.RA7 = 0;
-
-    TRISBbits.RB2 = 0;
-    PORTBbits.RB2 = 0;
     
     // PWM à 200kHz
     TRISBbits.RB3 = 1;      // Bloque la sortie du PWM.
     CCP1CONbits.CCP1M = 12; // PWM actif, P1A actif haut.
-    CCP1CONbits.P1M = 0;    // Sortie uniquement P1A (RB3) 
+    CCP1CONbits.P1M = 0;    // Sortie uniquement P1A (RC2) 
     PR2 = 40;               // Période de 40
     CCPR1L = 20;            // Cycle de travail de 50%
     T2CONbits.T2CKPS = 0;   
     T2CONbits.TMR2ON = 1;
     
-    // Active le temporisateur 0 pour surveiller L'accumulateur principal:
+    // Active le temporisateur 0 pour surveiller les entrées analogiques:
     // Période d'interruption: 100uS
     T0CONbits.T08BIT = 0;
     T0CONbits.T0CS = 0;
@@ -153,18 +163,7 @@ static void hardwareInitialise() {
     INTCONbits.TMR0IE = 1;
     INTCONbits.TMR0IF = 0;
     INTCON2bits.TMR0IP = 0;
-    
-    // Configure le convertisseur analogique pour un temps de conversion de 24uS
-    ADCON0bits.ADON = 1;
-    ADCON0bits.CHS = 4;     // AN4: Tension de sortie de l'accumulateur secondaire.
-    ADCON1 = 0b00101111;    // Active AN6 et AN4 comme entrées analogiques.
-    ADCON2bits.ADFM = 0;    // Justification à gauche.
-    ADCON2bits.ADCS = 5;    // Horloge de conversion: Fosc / 8
-    ADCON2bits.ACQT = 5;    // Conversion: 12 TAD.
-    
-    PIE1bits.ADIE = 1;      // Interruptions du module A/D
-    IPR1bits.ADIP = 0;      // Basse priorité.
-    
+        
     // Active les interruptions générales:
     RCONbits.IPEN = 1;
     INTCONbits.GIEH = 1;
@@ -175,7 +174,7 @@ static void hardwareInitialise() {
  * Point d'entrée pour l'émetteur de radio contrôle.
  */
 void main(void) {
-    maintenirAlimentation();
+    maintientAlimentation();
     hardwareInitialise();
     while(1);
 }
