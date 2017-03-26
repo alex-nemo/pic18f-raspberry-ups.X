@@ -152,7 +152,7 @@ unsigned char i2cValeursExposees[I2C_MASQUE_ADRESSES_LOCALES + 1];
  * @param valeur La valeur.
  */
 void i2cExposeValeur(unsigned char adresse, unsigned char valeur) {
-    i2cValeursExposees[adresse] = valeur;
+    i2cValeursExposees[adresse & I2C_MASQUE_ADRESSES_LOCALES] = valeur;
 }
 
 /**
@@ -179,15 +179,16 @@ void i2cEsclave() {
                 SSP1CON1bits.CKP = 1;
             }
         } else {
-            if (SSP1STATbits.BF) {
-                // État 2 - Opération d'écriture, dernier octet reçu est une donnée:
-                if (SSP1STATbits.DA) {
-                    // L'esclave doit traiter la donnée reçue:
-                    rappelCommande(adresse, SSP1BUF);
-                }
-                // État 1 - Opération d'écriture, dernier octet reçu est une adresse:
-                else {
-                    adresse = convertitEnAdresseLocale(SSP1BUF);
+            // État 2 - Opération d'écriture, dernier octet reçu est une donnée:
+            if (SSP1STATbits.DA) {
+                // L'esclave doit traiter la donnée reçue:
+                rappelCommande(adresse, SSP1BUF);
+            }
+            // État 1 - Opération d'écriture, dernier octet reçu est une adresse:
+            else {
+                adresse = convertitEnAdresseLocale(SSP1BUF);
+                if (SSP1CON1bits.SSPOV) {
+                    SSP1CON1bits.SSPOV = 0;
                 }
             }
         }

@@ -98,26 +98,33 @@ void interrupt low_priority bassePriorite() {
         PIR1bits.ADIF = 0;
         switch (sourceAD) {
             case ACCUMULATEUR:
-                i2cExposeValeur(2, conversion);
+                i2cExposeValeur(LECTURE_ACCUMULATEUR, conversion);
                 energie = mesureAccumulateur(conversion);
                 sourceAD = BOOST;
                 break;
                 
             case BOOST:
-                i2cExposeValeur(1, conversion);
+                i2cExposeValeur(LECTURE_BOOST, conversion);
                 energie = mesureBoost(conversion);
                 sourceAD = ALIMENTATION;
                 break;
 
             case ALIMENTATION:
             default:
-                i2cExposeValeur(0, conversion);
+                i2cExposeValeur(LECTURE_ALIMENTATION, conversion);
                 energie = mesureAlimentation(conversion);
                 sourceAD = ACCUMULATEUR;
                 break;
         }
         configureCircuit(energie);
     }
+
+    // Interruptions I2C
+    if (PIR1bits.SSP1IF) {
+        i2cEsclave();
+        PIR1bits.SSP1IF = 0;
+    }
+
 }
 
 /**
@@ -142,7 +149,7 @@ static void hardwareInitialise() {
     IPR1bits.ADIP = 0;      // Basse priorité.
 
     // Entrées digitales:
-    TRISA = 0b00011111;
+    TRISA = 0b10011111;
     TRISB = 0b11111111;
     TRISC = 0b11011000;
 
@@ -172,7 +179,7 @@ static void hardwareInitialise() {
     // Active le MSSP1 en mode Esclave I2C:
     SSP1CON1bits.SSPEN = 1;             // Active le module SSP.    
     
-    SSP1ADD = LECTURE_ALIMENTATION;     // Adresse de l'esclave.
+    SSP1ADD = LECTURE_ALIMENTATION;     // 1ère Adresse de l'esclave.
     SSP1MSK = I2C_MASQUE_ADRESSES_ESCLAVES;
     SSP1CON1bits.SSPM = 0b1110;         // SSP1 en mode esclave I2C avec adresse de 7 bits et interruptions STOP et START.
         
