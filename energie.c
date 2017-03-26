@@ -212,6 +212,18 @@ static void peut_completer_un_cycle_de_charge() {
     verifieEgalite("ACCCY11", mesureAccumulateur(CONVERSION_8BITS(35))->chargerAccumulateur, 1);    
 }
 
+static void ne_recommence_pas_un_cycle_de_charge_si_le_precedent_est_interrompu() {
+    initialiseEnergie();    
+    verifieEgalite("ACCCI01", mesureAccumulateur(CONVERSION_8BITS(42))->chargerAccumulateur, 0);
+    verifieEgalite("ACCCI02", mesureAccumulateur(CONVERSION_8BITS(35))->chargerAccumulateur, 1);
+    verifieEgalite("ACCCI03", mesureAccumulateur(CONVERSION_8BITS(39))->chargerAccumulateur, 1);
+
+    initialiseEnergie();    
+    verifieEgalite("ACCCI04", mesureAccumulateur(CONVERSION_8BITS(39))->chargerAccumulateur, 0);
+    verifieEgalite("ACCCI05", mesureAccumulateur(CONVERSION_8BITS( 0))->chargerAccumulateur, 0);
+    verifieEgalite("ACCCI06", mesureAccumulateur(CONVERSION_8BITS(39))->chargerAccumulateur, 0);
+}
+
 static void peut_detecter_que_l_accumulateur_est_disponible() {
     initialiseEnergie();
     
@@ -302,6 +314,7 @@ static void ne_solicite_pas_l_accumulateur_si_il_est_pas_disponible() {
 void testeEnergie() {
     peut_detecter_que_l_accumulateur_est_disponible();
     peut_completer_un_cycle_de_charge();
+    ne_recommence_pas_un_cycle_de_charge_si_le_precedent_est_interrompu();
     
     sollicite_l_accumulateur_si_l_alimentation_fait_defaut();
     ne_sollicite_plus_l_accumulateur_si_le_raspberry_s_eteint();
