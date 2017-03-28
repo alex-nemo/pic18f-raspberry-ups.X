@@ -163,7 +163,7 @@ void i2cExposeValeur(unsigned char adresse, unsigned char valeur) {
 void i2cEsclave() {
     static unsigned char adresse;
     
-    // Machine à état extraite de Microchip AN734 - Apendix B
+    // Machine à état extraite de Microchip AN00734b - Apendice B
     if (SSP1STATbits.S) {
         if (SSP1STATbits.RW) {
             // État 4 - Opération de lecture, dernier octet transmis est une donnée:
@@ -177,6 +177,11 @@ void i2cEsclave() {
                 adresse = convertitEnAdresseLocale(SSP1BUF);
                 SSP1BUF = i2cValeursExposees[adresse];
                 SSP1CON1bits.CKP = 1;
+                // Sur les PIC18 plus récents, BF s'allume en État 3.
+                // Il doit être lu et désactivé.
+                if (SSP1STATbits.BF) {
+                    SSP1STATbits.BF = 0;
+                }
             }
         } else {
             // État 2 - Opération d'écriture, dernier octet reçu est une donnée:
