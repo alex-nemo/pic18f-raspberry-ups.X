@@ -152,40 +152,41 @@ Energie *mesureBoost(unsigned char v) {
 }
 
 Energie *mesureAccumulateur(unsigned char vAccumulateur) {
-    if ( (vAccumulateur < 50) || (vAccumulateur > 114)) {
+    // En dessous de 50 (1.96V):
+    if (vAccumulateur < 50) {
         etatAccumulateur = ABSENT;
-    } else {
+    }
+    // Entre 50 et 80 (3.13V):
+    else if (vAccumulateur <= 80) {
+        etatAccumulateur = PAS_UTILISABLE;
+    }
+    // Entre 80 et 90 (3.53V):
+    else if (vAccumulateur <= 90) {
+        etatAccumulateur = UTILISABLE_MAIS_FAIBLE;
+    }
+    // Entre 90 et 107 (4.2V)
+    else if (vAccumulateur <= 107) {
         switch(etatAccumulateur) {
-            case ABSENT:
-                etatAccumulateur = PAS_UTILISABLE;
-                break;
-            case PAS_UTILISABLE:
-                if (vAccumulateur > 80) {
-                    etatAccumulateur = UTILISABLE_MAIS_FAIBLE;
-                }
-                if (vAccumulateur > 91) {
-                    etatAccumulateur = UTILISABLE;
-                }
-                break;
             case UTILISABLE_MAIS_FAIBLE:
-                if (vAccumulateur < 80) {
-                    etatAccumulateur = PAS_UTILISABLE;
-                }
-                if (vAccumulateur > 107) {
+                if (vAccumulateur >= 107) {
                     etatAccumulateur = UTILISABLE;
                 }
                 break;
-            case UTILISABLE:
-                if (vAccumulateur < 91) {
-                    etatAccumulateur = UTILISABLE_MAIS_FAIBLE;   
-                }
-                if (vAccumulateur < 80) {
-                    etatAccumulateur = PAS_UTILISABLE;
-                }
-                break;
+            case ABSENT:
+            case PAS_UTILISABLE:
+                etatAccumulateur = UTILISABLE;
+                break;                
         }
     }
-
+    // Entre 107 et 114 (4.47V):
+    else if (vAccumulateur <= 114) {
+        etatAccumulateur = UTILISABLE;
+    }
+    // Au dessus de 114:
+    else {
+        etatAccumulateur = ABSENT;
+    }
+    
     return etatEnergie();
 }
 
@@ -204,9 +205,9 @@ static void peut_completer_un_cycle_de_charge() {
     verifieEgalite("ACCCY03", mesureAccumulateur(CONVERSION_8BITS(36))->chargerAccumulateur, 0);
     verifieEgalite("ACCCY04", mesureAccumulateur(CONVERSION_8BITS(35))->chargerAccumulateur, 1);
     verifieEgalite("ACCCY05", mesureAccumulateur(CONVERSION_8BITS(39))->chargerAccumulateur, 1);
-    verifieEgalite("ACCCY06", mesureAccumulateur(CONVERSION_8BITS(42))->chargerAccumulateur, 1);
-    verifieEgalite("ACCCY07", mesureAccumulateur(CONVERSION_8BITS(43))->chargerAccumulateur, 0);
-    verifieEgalite("ACCCY08", mesureAccumulateur(CONVERSION_8BITS(42))->chargerAccumulateur, 0);
+    verifieEgalite("ACCCY06", mesureAccumulateur(CONVERSION_8BITS(41))->chargerAccumulateur, 1);
+    verifieEgalite("ACCCY07", mesureAccumulateur(CONVERSION_8BITS(42))->chargerAccumulateur, 0);
+    verifieEgalite("ACCCY08", mesureAccumulateur(CONVERSION_8BITS(41))->chargerAccumulateur, 0);
     verifieEgalite("ACCCY09", mesureAccumulateur(CONVERSION_8BITS(38))->chargerAccumulateur, 0);
     verifieEgalite("ACCCY10", mesureAccumulateur(CONVERSION_8BITS(36))->chargerAccumulateur, 0);
     verifieEgalite("ACCCY11", mesureAccumulateur(CONVERSION_8BITS(35))->chargerAccumulateur, 1);    
