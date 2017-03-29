@@ -309,7 +309,6 @@ static void ne_solicite_pas_l_accumulateur_si_il_est_pas_disponible() {
 
     mesureAccumulateur(CONVERSION_8BITS(31));
     verifieEgalite("ACCSD01", mesureAlimentation(CONVERSION_8BITS(59))->solliciterAccumulateur, 0);
-    
 }
 
 void testeEnergie() {
