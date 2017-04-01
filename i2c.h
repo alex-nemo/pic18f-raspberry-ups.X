@@ -7,7 +7,8 @@
 typedef enum {
     LECTURE_ALIMENTATION  = 0b00011000,
     LECTURE_BOOST         = 0b00011001,
-    LECTURE_ACCUMULATEUR  = 0b00011010
+    LECTURE_ACCUMULATEUR  = 0b00011010,
+    LECTURE_ERREUR        = 0b00011011
 } I2cAdresse;
 
 typedef struct {

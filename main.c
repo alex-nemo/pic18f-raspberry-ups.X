@@ -85,38 +85,41 @@ void interrupt low_priority bassePriorite() {
     // Lance une conversion Analogique / Digitale:
     if (INTCONbits.T0IF) {
         INTCONbits.T0IF = 0;
-        TMR0H = 0xFF;
-        TMR0L = 0x37;
-
+        TMR0H = 0xFC;
+        TMR0L = 0x18;
         ADCON0bits.CHS = sourceAD;
         ADCON0bits.GODONE = 1;
     }
     
     // Reçoit le résultat de la conversion Analogique / Digitale.
     if (PIR1bits.ADIF) {
-        conversion = ADRESH;
         PIR1bits.ADIF = 0;
-        switch (sourceAD) {
-            case ACCUMULATEUR:
-                i2cExposeValeur(LECTURE_ACCUMULATEUR, conversion);
-                energie = mesureAccumulateur(conversion);
-                sourceAD = BOOST;
-                break;
-                
-            case BOOST:
-                i2cExposeValeur(LECTURE_BOOST, conversion);
-                energie = mesureBoost(conversion);
-                sourceAD = ALIMENTATION;
-                break;
+        if (!ADCON0bits.GODONE) {
+            conversion = ADRESH;
+            switch (sourceAD) {
+                case ACCUMULATEUR:
+                    i2cExposeValeur(LECTURE_ACCUMULATEUR, conversion);
+                    energie = mesureAccumulateur(conversion);
+                    sourceAD = BOOST;
+                    break;
 
-            case ALIMENTATION:
-            default:
-                i2cExposeValeur(LECTURE_ALIMENTATION, conversion);
-                energie = mesureAlimentation(conversion);
-                sourceAD = ACCUMULATEUR;
-                break;
+                case BOOST:
+                    i2cExposeValeur(LECTURE_BOOST, conversion);
+                    energie = mesureBoost(conversion);
+                    sourceAD = ALIMENTATION;
+                    break;
+
+                case ALIMENTATION:
+                default:
+                    i2cExposeValeur(LECTURE_ALIMENTATION, conversion);
+                    energie = mesureAlimentation(conversion);
+                    sourceAD = ACCUMULATEUR;
+                    break;
+            }
+            configureCircuit(energie);
+        } else {
+            i2cExposeValeur(LECTURE_ERREUR, 255);
         }
-        configureCircuit(energie);
     }
 
     // Interruptions I2C
