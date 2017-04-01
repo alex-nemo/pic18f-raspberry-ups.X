@@ -189,6 +189,7 @@ static void hardwareInitialise() {
     SSP1CON3bits.PCIE = 0;              // Désactive l'interruption en cas STOP.
     SSP1CON3bits.SCIE = 0;              // Désactive l'interruption en cas de START.
     SSP1CON3bits.SBCDE = 0;             // Désactive l'interruption en cas de collision.
+    SSP1CON3bits.BOEN = 1;              // 
 
     PIE1bits.SSP1IE = 1;                // Interruption en cas de transmission I2C...
     IPR1bits.SSP1IP = 0;                // ... de basse priorité.

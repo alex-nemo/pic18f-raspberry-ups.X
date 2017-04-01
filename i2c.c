@@ -163,7 +163,7 @@ void i2cExposeValeur(unsigned char adresse, unsigned char valeur) {
 void i2cEsclave() {
     static unsigned char adresse;
     
-    // Machine à état extraite de Microchip AN00734b - Apendice B
+    // Machine à état extraite de Microchip AN00734b - Appendice B
     if (SSP1STATbits.S) {
         if (SSP1STATbits.RW) {
             // État 4 - Opération de lecture, dernier octet transmis est une donnée:
