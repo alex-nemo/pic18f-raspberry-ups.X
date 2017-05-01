@@ -4,7 +4,7 @@ PIC18F-RASPBERRY-UPS INFORMATION FILE v1.0.0
 In case of difficulty, please e-mail jmgonet@yahoo.com
 
 Tool set up for Proteus layout 'pic18f-raspberry-ups.pdsprj'.
-CADCAM generated at 6:19:26 PM on Thursday, March 2, 2017.
+CADCAM generated at 7:35:26 PM on Thursday, April 27, 2017.
 
 Connector P1ALIM:
 -----------------

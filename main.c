@@ -186,9 +186,9 @@ static void hardwareInitialise() {
     SSP1MSK = I2C_MASQUE_ADRESSES_ESCLAVES;
     SSP1CON1bits.SSPM = 0b1110;         // SSP1 en mode esclave I2C avec adresse de 7 bits et interruptions STOP et START.
         
-    SSP1CON3bits.PCIE = 0;              // Désactive l'interruption en cas STOP.
-    SSP1CON3bits.SCIE = 0;              // Désactive l'interruption en cas de START.
-    SSP1CON3bits.SBCDE = 0;             // Désactive l'interruption en cas de collision.
+    SSP1CON3bits.PCIE = 1;              // Désactive l'interruption en cas STOP.
+    SSP1CON3bits.SCIE = 1;              // Désactive l'interruption en cas de START.
+    SSP1CON3bits.SBCDE = 1;             // Désactive l'interruption en cas de collision.
     SSP1CON3bits.BOEN = 1;              // 
 
     PIE1bits.SSP1IE = 1;                // Interruption en cas de transmission I2C...
